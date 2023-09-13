@@ -49,6 +49,8 @@ class DemonstrationTeleOpPowerplayKt : LinearOpMode() {
             // calculated by summing the weights of the wheel movement
             // for each axis via matrix multiplication
             val wheelSpeeds = (directionMatrix.multiplied(inputMatrix) as GeneralMatrixF).data
+
+            // normalize the wheel speeds to within 0..1 and apply the new speeds
             val maxSpeed = wheelSpeeds.maxOfOrNull { it.absoluteValue }!!
             wheelSpeeds.map { it / maxSpeed }
                     .zip(motors)
