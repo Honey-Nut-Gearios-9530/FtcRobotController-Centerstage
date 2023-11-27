@@ -41,7 +41,7 @@ class DemonstrationTeleOpPowerplayKt : LinearOpMode() {
             // calculate amount of rotation
             val rotate = (gamepad1.left_trigger + -gamepad1.right_trigger) * speedMultiplier
 
-            // matrix that hold the directions the wheels need to go
+            // matrix that holds the directions the wheels need to go
             // for movement in the x, y and rotational axes
             val directionMatrix = GeneralMatrixF(
                 4, 3, floatArrayOf(
