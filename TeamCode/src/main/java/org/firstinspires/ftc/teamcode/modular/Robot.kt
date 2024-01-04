@@ -13,7 +13,7 @@ import kotlin.reflect.KMutableProperty1
 
 class Robot(val telemetry: Telemetry) {
     private var speedMultiplier = 1f
-    private lateinit var armMotor: DcMotor
+    private lateinit var armBaseMotor: DcMotor
     private lateinit var spindleDrive: DcMotor
     private lateinit var drivetrainMotors: Array<DcMotor>
     private lateinit var lclaw: Servo
@@ -35,8 +35,9 @@ class Robot(val telemetry: Telemetry) {
         val rightFront = hardwareMap.dcMotor["rfdrive"]
         val leftBack = hardwareMap.dcMotor["lbdrive"]
         val rightBack = hardwareMap.dcMotor["rbdrive"]
-        this.armMotor = hardwareMap.dcMotor["armbasedrive"]
+        this.armBaseMotor = hardwareMap.dcMotor["armbasedrive"]
         this.spindleDrive = hardwareMap.dcMotor["spindledrive"]
+        // TODO: wrist
         this.lclaw = hardwareMap.servo["lclawservo"]
         this.rclaw = hardwareMap.servo["rclawservo"]
         this.drivetrainMotors = arrayOf(leftFront, rightFront, leftBack, rightBack)
@@ -46,12 +47,16 @@ class Robot(val telemetry: Telemetry) {
 
         // slows down faster when directional input is let off
         this.drivetrainMotors.forEach { it.zeroPowerBehavior = DcMotor.ZeroPowerBehavior.BRAKE }
+        this.armBaseMotor.zeroPowerBehavior = DcMotor.ZeroPowerBehavior.BRAKE
+        this.spindleDrive.zeroPowerBehavior = DcMotor.ZeroPowerBehavior.BRAKE
 
         // go forward on all pos inputs
         leftFront.direction = DcMotorSimple.Direction.REVERSE
         rightFront.direction = DcMotorSimple.Direction.FORWARD
         leftBack.direction = DcMotorSimple.Direction.REVERSE
         rightBack.direction = DcMotorSimple.Direction.FORWARD
+
+        this.armBaseMotor.direction = DcMotorSimple.Direction.REVERSE
 
         this.setClaw(Claw.LEFT, ClawState.CLOSED)
         this.setClaw(Claw.RIGHT, ClawState.CLOSED)
@@ -70,9 +75,10 @@ class Robot(val telemetry: Telemetry) {
     }
 
     private fun updateArm() {
-        this.armMotor.power = -this.armMotorStick.get() * 0.5
+        this.armBaseMotor.power = -this.armMotorStick.get() * 0.5
         this.spindleDrive.power =
-            (this.spindleExtendStick.get() - this.spindleRetractStick.get()) * 0.5
+            (this.spindleExtendStick.get() - this.spindleRetractStick.get()) * 0.4
+
     }
 
     private fun updateGamepads(gamepad1: Gamepad, gamepad2: Gamepad) {
@@ -131,9 +137,9 @@ class Robot(val telemetry: Telemetry) {
         consumer(state)
     }
 
-    fun registerButton(button: GamepadButton, consumer: (BooleanState) -> Unit) {
-        this.registeredBooleanInputs[button] = consumer
-    }
+//    fun registerButton(button: GamepadButton, consumer: (BooleanState) -> Unit) {
+//        this.registeredBooleanInputs[button] = consumer
+//    }
 
     fun registerButton(button: GamepadButton, consumer: Function1<Robot, Unit>) {
         val wrappingConsumer: (BooleanState) -> Unit = {
