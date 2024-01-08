@@ -41,6 +41,7 @@ class RobotTester : OpMode() {
 
     override fun loop() {
         robot.tick(gamepad1, gamepad2)
+        telemetry.update()
     }
 
 }

@@ -11,6 +11,9 @@ import kotlin.math.absoluteValue
 import kotlin.math.sign
 import kotlin.reflect.KMutableProperty1
 
+typealias FloatButtonType = KMutableProperty1<Gamepad, Float>
+typealias BooleanButtonType = KMutableProperty1<Gamepad, Boolean>
+
 class Robot(val telemetry: Telemetry) {
     private var speedMultiplier = 1f
     private lateinit var armBaseMotor: DcMotor
@@ -18,6 +21,8 @@ class Robot(val telemetry: Telemetry) {
     private lateinit var drivetrainMotors: Array<DcMotor>
     private lateinit var lclaw: Servo
     private lateinit var rclaw: Servo
+    private lateinit var pitchWrist: Servo
+    private lateinit var rollWrist: Servo
     private lateinit var armMotorStick: FloatButton
     private lateinit var wristPitchStick: FloatButton
     private lateinit var wristRollStick: FloatButton
@@ -37,13 +42,22 @@ class Robot(val telemetry: Telemetry) {
         val rightBack = hardwareMap.dcMotor["rbdrive"]
         this.armBaseMotor = hardwareMap.dcMotor["armbasedrive"]
         this.spindleDrive = hardwareMap.dcMotor["spindledrive"]
-        // TODO: wrist
+        this.pitchWrist = hardwareMap.servo["verticalwrist"]
+        this.rollWrist = hardwareMap.servo["horizontalwrist"]
         this.lclaw = hardwareMap.servo["lclawservo"]
         this.rclaw = hardwareMap.servo["rclawservo"]
         this.drivetrainMotors = arrayOf(leftFront, rightFront, leftBack, rightBack)
 
         // faster than using encoders
         this.drivetrainMotors.forEach { it.mode = DcMotor.RunMode.RUN_WITHOUT_ENCODER }
+
+
+        arrayOf(DcMotor.RunMode.STOP_AND_RESET_ENCODER, DcMotor.RunMode.RUN_USING_ENCODER).forEach {
+            it.let {
+                this.spindleDrive.mode = it
+                this.armBaseMotor.mode = it
+            }
+        }
 
         // slows down faster when directional input is let off
         this.drivetrainMotors.forEach { it.zeroPowerBehavior = DcMotor.ZeroPowerBehavior.BRAKE }
@@ -57,6 +71,7 @@ class Robot(val telemetry: Telemetry) {
         rightBack.direction = DcMotorSimple.Direction.FORWARD
 
         this.armBaseMotor.direction = DcMotorSimple.Direction.REVERSE
+        this.spindleDrive.direction = DcMotorSimple.Direction.REVERSE
 
         this.setClaw(Claw.LEFT, ClawState.CLOSED)
         this.setClaw(Claw.RIGHT, ClawState.CLOSED)
@@ -76,9 +91,25 @@ class Robot(val telemetry: Telemetry) {
 
     private fun updateArm() {
         this.armBaseMotor.power = -this.armMotorStick.get() * 0.5
-        this.spindleDrive.power =
-            (this.spindleExtendStick.get() - this.spindleRetractStick.get()) * 0.4
+        // mounted backwards
+        val spindlePosition = this.spindleDrive.currentPosition
+//        if (spindlePosition >= -5) {
+            this.spindleDrive.power =
+                (this.spindleExtendStick.get() - this.spindleRetractStick.get()) * 0.35
+//        } else {
+//            this.spindleDrive.power = 0.04
+//        }
+        telemetry.addLine(spindlePosition.toString())
+        updateWrist()
+    }
 
+    private fun updateWrist() {
+        this.pitchWrist.position =
+            (this.pitchWrist.position + this.wristPitchStick.get() * 0.002).coerceIn(0.25..0.9)
+        // telemetry.addLine(pitchWrist.position.toString())
+        this.rollWrist.position =
+            (this.rollWrist.position + this.wristRollStick.get() * 0.005).coerceIn(0.0..0.54)
+        // telemetry.addLine(rollWrist.position.toString())
     }
 
     private fun updateGamepads(gamepad1: Gamepad, gamepad2: Gamepad) {
@@ -154,6 +185,8 @@ class Robot(val telemetry: Telemetry) {
     fun registerButton(button: GamepadButton, consumer: () -> Unit) {
         val wrappingConsumer: (BooleanState) -> Unit = {
             if (it == BooleanState.RISING_EDGE) {
+                telemetry.addLine(button.toString())
+                telemetry.update()
                 consumer()
             }
         }
@@ -260,6 +293,3 @@ class Robot(val telemetry: Telemetry) {
         }
     }
 }
-
-typealias FloatButtonType = KMutableProperty1<Gamepad, Float>
-typealias BooleanButtonType = KMutableProperty1<Gamepad, Boolean>
