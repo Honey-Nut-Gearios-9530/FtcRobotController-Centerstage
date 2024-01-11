@@ -5,6 +5,7 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple
 import com.qualcomm.robotcore.hardware.Gamepad
 import com.qualcomm.robotcore.hardware.HardwareMap
 import com.qualcomm.robotcore.hardware.Servo
+import com.qualcomm.robotcore.hardware.TouchSensor
 import org.firstinspires.ftc.robotcore.external.Telemetry
 import org.firstinspires.ftc.robotcore.external.matrices.GeneralMatrixF
 import kotlin.math.absoluteValue
@@ -28,6 +29,7 @@ class Robot(val telemetry: Telemetry) {
     private lateinit var wristRollStick: FloatButton
     private lateinit var spindleExtendStick: FloatButton
     private lateinit var spindleRetractStick: FloatButton
+    private lateinit var armBottom: TouchSensor
     private lateinit var drivetrainButtons: Array<FloatButton>
     private var currentGamepad1 = Gamepad()
     private var pastGamepad1 = Gamepad()
@@ -46,6 +48,7 @@ class Robot(val telemetry: Telemetry) {
         this.rollWrist = hardwareMap.servo["horizontalwrist"]
         this.lclaw = hardwareMap.servo["lclawservo"]
         this.rclaw = hardwareMap.servo["rclawservo"]
+        this.armBottom = hardwareMap.touchSensor["armbottom"]
         this.drivetrainMotors = arrayOf(leftFront, rightFront, leftBack, rightBack)
 
         // faster than using encoders
@@ -87,18 +90,20 @@ class Robot(val telemetry: Telemetry) {
         }
         this.updateDrivetrain()
         this.updateArm()
+        this.telemetry.addLine(if (this.armBottom.isPressed) "sensor pressed" else "sensor not pressed")
+
     }
 
     private fun updateArm() {
         this.armBaseMotor.power = -this.armMotorStick.get() * 0.5
         // mounted backwards
         val spindlePosition = this.spindleDrive.currentPosition
-//        if (spindlePosition >= -5) {
+        if (spindlePosition >= -5) {
             this.spindleDrive.power =
                 (this.spindleExtendStick.get() - this.spindleRetractStick.get()) * 0.35
-//        } else {
-//            this.spindleDrive.power = 0.04
-//        }
+        } else {
+            this.spindleDrive.power = 0.04
+        }
         telemetry.addLine(spindlePosition.toString())
         updateWrist()
     }

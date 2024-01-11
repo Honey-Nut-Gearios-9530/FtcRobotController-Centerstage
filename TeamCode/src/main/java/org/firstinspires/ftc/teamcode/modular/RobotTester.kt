@@ -40,8 +40,8 @@ class RobotTester : OpMode() {
     }
 
     override fun loop() {
-        robot.tick(gamepad1, gamepad2)
-        telemetry.update()
+        this.robot.tick(this.gamepad1, this.gamepad2)
+        this.telemetry.update()
     }
 
 }
