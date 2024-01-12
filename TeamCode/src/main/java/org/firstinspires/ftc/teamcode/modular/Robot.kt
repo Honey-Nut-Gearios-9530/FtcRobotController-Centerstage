@@ -15,13 +15,16 @@ import kotlin.reflect.KMutableProperty1
 typealias FloatButtonType = KMutableProperty1<Gamepad, Float>
 typealias BooleanButtonType = KMutableProperty1<Gamepad, Boolean>
 
-class Robot(val telemetry: Telemetry) {
+class Robot(private val telemetry: Telemetry) {
     private var speedMultiplier = 1f
     private lateinit var armBaseMotor: DcMotor
     private lateinit var spindleDrive: DcMotor
     private lateinit var drivetrainMotors: Array<DcMotor>
-    private lateinit var lclaw: Servo
-    private lateinit var rclaw: Servo
+    private lateinit var lclaw: ServoWrapper
+    private lateinit var rclaw: ServoWrapper
+    private lateinit var leftgrabber: ServoWrapper
+    private lateinit var rightgrabber: ServoWrapper
+    private lateinit var droneservo: ServoWrapper
     private lateinit var pitchWrist: Servo
     private lateinit var rollWrist: Servo
     private lateinit var armMotorStick: FloatButton
@@ -46,8 +49,11 @@ class Robot(val telemetry: Telemetry) {
         this.spindleDrive = hardwareMap.dcMotor["spindledrive"]
         this.pitchWrist = hardwareMap.servo["verticalwrist"]
         this.rollWrist = hardwareMap.servo["horizontalwrist"]
-        this.lclaw = hardwareMap.servo["lclawservo"]
-        this.rclaw = hardwareMap.servo["rclawservo"]
+        this.lclaw = ServoWrapper(hardwareMap.servo["lclawservo"], 0.8, 0.5)
+        this.rclaw = ServoWrapper(hardwareMap.servo["rclawservo"], 0.8, 0.5)
+        this.leftgrabber = ServoWrapper(hardwareMap.servo["leftgrabber"], 0.0, 0.39)
+        this.rightgrabber = ServoWrapper(hardwareMap.servo["rightgrabber"], 0.5, 0.0270)
+        this.droneservo = ServoWrapper(hardwareMap.servo["droneservo"], 0.0, 0.05)
         this.armBottom = hardwareMap.touchSensor["armbottom"]
         this.drivetrainMotors = arrayOf(leftFront, rightFront, leftBack, rightBack)
 
@@ -76,8 +82,11 @@ class Robot(val telemetry: Telemetry) {
         this.armBaseMotor.direction = DcMotorSimple.Direction.REVERSE
         this.spindleDrive.direction = DcMotorSimple.Direction.REVERSE
 
-        this.setClaw(Claw.LEFT, ClawState.CLOSED)
-        this.setClaw(Claw.RIGHT, ClawState.CLOSED)
+        this.lclaw.set(ServoDualState.CLOSED)
+        this.rclaw.set(ServoDualState.CLOSED)
+        this.leftgrabber.set(0.55)
+        this.rightgrabber.set(0.0)
+        this.droneservo.set(ServoDualState.CLOSED)
 
         this.telemetry.addLine("Initialized devices")
         this.telemetry.update()
@@ -90,13 +99,24 @@ class Robot(val telemetry: Telemetry) {
         }
         this.updateDrivetrain()
         this.updateArm()
-        this.telemetry.addLine(if (this.armBottom.isPressed) "sensor pressed" else "sensor not pressed")
+        this.updateGrabber()
+    }
 
+    private fun updateGrabber() {
+        this.rightgrabber.set(
+            (this.rightgrabber.getPosition() + -this.currentGamepad1.left_stick_y * 0.002).coerceIn(
+                0.0..1.0
+            )
+        )
+        this.telemetry.addLine("right grabber: " + this.rightgrabber.getPosition())
     }
 
     private fun updateArm() {
-        this.armBaseMotor.power = -this.armMotorStick.get() * 0.5
-        // mounted backwards
+        this.armBaseMotor.power =
+            if (!this.armBottom.isPressed)
+                -this.armMotorStick.get() * 0.5
+            else
+                (-this.armMotorStick.get() * 0.5).coerceAtLeast(0.0)
         val spindlePosition = this.spindleDrive.currentPosition
         if (spindlePosition >= -5) {
             this.spindleDrive.power =
@@ -104,17 +124,17 @@ class Robot(val telemetry: Telemetry) {
         } else {
             this.spindleDrive.power = 0.04
         }
-        telemetry.addLine(spindlePosition.toString())
+        // telemetry.addLine(spindlePosition.toString())
         updateWrist()
     }
 
     private fun updateWrist() {
         this.pitchWrist.position =
             (this.pitchWrist.position + this.wristPitchStick.get() * 0.002).coerceIn(0.25..0.9)
-        // telemetry.addLine(pitchWrist.position.toString())
+        // this.telemetry.addLine(pitchWrist.position.toString())
         this.rollWrist.position =
             (this.rollWrist.position + this.wristRollStick.get() * 0.005).coerceIn(0.0..0.54)
-        // telemetry.addLine(rollWrist.position.toString())
+        // this.telemetry.addLine(rollWrist.position.toString())
     }
 
     private fun updateGamepads(gamepad1: Gamepad, gamepad2: Gamepad) {
@@ -173,10 +193,6 @@ class Robot(val telemetry: Telemetry) {
         consumer(state)
     }
 
-//    fun registerButton(button: GamepadButton, consumer: (BooleanState) -> Unit) {
-//        this.registeredBooleanInputs[button] = consumer
-//    }
-
     fun registerButton(button: GamepadButton, consumer: Function1<Robot, Unit>) {
         val wrappingConsumer: (BooleanState) -> Unit = {
             if (it == BooleanState.RISING_EDGE) {
@@ -190,8 +206,6 @@ class Robot(val telemetry: Telemetry) {
     fun registerButton(button: GamepadButton, consumer: () -> Unit) {
         val wrappingConsumer: (BooleanState) -> Unit = {
             if (it == BooleanState.RISING_EDGE) {
-                telemetry.addLine(button.toString())
-                telemetry.update()
                 consumer()
             }
         }
@@ -203,12 +217,37 @@ class Robot(val telemetry: Telemetry) {
         this.speedMultiplier *= -1
     }
 
-    enum class Claw {
+    fun quarterSpeed() {
+        if (this.speedMultiplier.absoluteValue == 1f) {
+            this.speedMultiplier = 0.25f * speedMultiplier.sign
+        } else if (this.speedMultiplier.absoluteValue == 0.25f) {
+            this.speedMultiplier = 1f * speedMultiplier.sign
+        }
+    }
+
+    fun pixelPickupPose() {
+        this.pitchWrist.position = 0.8461111
+        this.rollWrist.position = 0.39
+    }
+
+    fun launchDrone() {
+        this.droneservo.set(ServoDualState.OPEN)
+    }
+
+    enum class LRServo {
         RIGHT, LEFT
     }
 
-    enum class ClawState {
-        CLOSED, OPEN
+    enum class ServoDualState {
+        CLOSED,
+        OPEN;
+
+        fun opposite(): ServoDualState {
+            return when (this) {
+                OPEN -> CLOSED
+                CLOSED -> OPEN
+            }
+        }
     }
 
     enum class BooleanState {
@@ -235,17 +274,17 @@ class Robot(val telemetry: Telemetry) {
         this.wristRollStick = wristRollStick
     }
 
-    fun setClaw(claw: Claw, state: ClawState) {
+    fun toggleClaw(claw: LRServo) {
         when (claw) {
-            Claw.LEFT -> this.setClawInternal(this.lclaw, state)
-            Claw.RIGHT -> this.setClawInternal(this.rclaw, state)
+            LRServo.LEFT -> this.lclaw.toggle()
+            LRServo.RIGHT -> this.rclaw.toggle()
         }
     }
 
-    private fun setClawInternal(claw: Servo, state: ClawState) {
-        when (state) {
-            ClawState.OPEN -> claw.position = 0.8
-            ClawState.CLOSED -> claw.position = 0.5
+    fun toggleGrabber(grabber: LRServo) {
+        when (grabber) {
+            LRServo.LEFT -> this.leftgrabber.toggle()
+            LRServo.RIGHT -> this.rightgrabber.toggle()
         }
     }
 
@@ -295,6 +334,33 @@ class Robot(val telemetry: Telemetry) {
 
         override fun getPrev(): Boolean {
             return this.button.get(this.getPrevGamepad())
+        }
+    }
+
+    inner class ServoWrapper(
+        private val servo: Servo,
+        private val open: Double,
+        private val closed: Double,
+        private var state: ServoDualState = ServoDualState.CLOSED
+    ) {
+        fun toggle() {
+            this.set(this.state.opposite())
+        }
+
+        fun set(state: ServoDualState) {
+            this.state = state
+            when (state) {
+                ServoDualState.OPEN -> this.servo.position = this.open
+                ServoDualState.CLOSED -> this.servo.position = this.closed
+            }
+        }
+
+        fun set(position: Double) {
+            this.servo.position = position
+        }
+
+        fun getPosition(): Double {
+            return servo.position
         }
     }
 }

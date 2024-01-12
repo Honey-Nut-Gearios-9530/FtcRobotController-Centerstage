@@ -7,22 +7,25 @@ import com.qualcomm.robotcore.hardware.Gamepad
 @Suppress("unused")
 @TeleOp(name = "Robot Tester", group = "danger")
 class RobotTester : OpMode() {
-    var robot = Robot(this.telemetry)
+    private var robot = Robot(this.telemetry)
 
     override fun init() {
         this.robot.initialize(this.hardwareMap)
         this.robot.registerButton(this.robot.BooleanButton(Gamepad::a, 0), Robot::switchDirection)
-        this.robot.registerButton(this.robot.BooleanButton(Gamepad::a, 1)) { ->
-            this.robot.setClaw(Robot.Claw.LEFT, Robot.ClawState.OPEN)
+        this.robot.registerButton(this.robot.BooleanButton(Gamepad::dpad_down, 0), Robot::quarterSpeed)
+        this.robot.registerButton(this.robot.BooleanButton(Gamepad::dpad_down, 1), Robot::pixelPickupPose)
+        this.robot.registerButton(this.robot.BooleanButton(Gamepad::dpad_up, 0), Robot::launchDrone)
+        this.robot.registerButton(this.robot.BooleanButton(Gamepad::left_bumper, 1)) { ->
+            this.robot.toggleClaw(Robot.LRServo.LEFT)
         }
-        this.robot.registerButton(this.robot.BooleanButton(Gamepad::b, 1)) { ->
-            this.robot.setClaw(Robot.Claw.LEFT, Robot.ClawState.CLOSED)
+        this.robot.registerButton(this.robot.BooleanButton(Gamepad::right_bumper, 1)) { ->
+            this.robot.toggleClaw(Robot.LRServo.RIGHT)
         }
-        this.robot.registerButton(this.robot.BooleanButton(Gamepad::x, 1)) { ->
-            this.robot.setClaw(Robot.Claw.RIGHT, Robot.ClawState.OPEN)
+        this.robot.registerButton(this.robot.BooleanButton(Gamepad::left_bumper, 0)) { ->
+            this.robot.toggleGrabber(Robot.LRServo.LEFT)
         }
-        this.robot.registerButton(this.robot.BooleanButton(Gamepad::y, 1)) { ->
-            this.robot.setClaw(Robot.Claw.RIGHT, Robot.ClawState.CLOSED)
+        this.robot.registerButton(this.robot.BooleanButton(Gamepad::right_bumper, 0)) { ->
+            this.robot.toggleGrabber(Robot.LRServo.RIGHT)
         }
         this.robot.registerDrivetrainButtons(
             this.robot.FloatButton(Gamepad::right_stick_y, 0),
