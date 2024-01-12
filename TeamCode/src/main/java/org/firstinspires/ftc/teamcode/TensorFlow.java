@@ -1,15 +1,15 @@
 package org.firstinspires.ftc.teamcode;
 
-import android.annotation.SuppressLint; // get the Lint (whatever that is) warnings to shut up lol, there's an entire library for that
+import android.annotation.SuppressLint;
 import android.util.Size;
 
 import org.firstinspires.ftc.robotcore.external.Telemetry;
-
 import org.firstinspires.ftc.robotcore.external.hardware.camera.BuiltinCameraDirection;
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 import org.firstinspires.ftc.robotcore.external.tfod.Recognition;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.tfod.TfodProcessor;
+import org.jetbrains.annotations.Nullable;
 
 public class TensorFlow {
     /*
@@ -35,7 +35,6 @@ public class TensorFlow {
      * The variable to store our instance of the TensorFlow Object Detection processor.
      */
     private TfodProcessor tfod;
-
 
 
     private VisionPortal visionPortal; // The variable to store our instance of the vision portal.
@@ -148,7 +147,7 @@ public class TensorFlow {
 
 
     // propAlliance checks what color the prop is
-    private String propAlliance(Telemetry telemetry, Recognition recognition) {
+    private @Nullable PropAlliance propAlliance(Telemetry telemetry, Recognition recognition) {
         visionPortal.setProcessorEnabled(tfod, true); // enable the tensorflow processor to recognize team prop alliance
 
         // print teamprop label and confidence
@@ -156,13 +155,13 @@ public class TensorFlow {
         telemetry.addData("Confidence:", recognition.getConfidence() * 100);
         telemetry.update();
 
-        String alliance = null; // set the alliance string to null in preparation of team prop detection
+        PropAlliance alliance = null; // set the alliance string to null in preparation of team prop detection
 
         // set alliance variable
         if ("Team Prop Red".equals(recognition.getLabel())) {
-            alliance = "red";
+            alliance = PropAlliance.RED;
         } else if ("Team Prop Blue".equals(recognition.getLabel())) {
-            alliance = "blue";
+            alliance = PropAlliance.BLUE;
         } else {
             telemetry.addData("Error: Couldn't detect any objects, or incorrect label.", null);
             telemetry.update();
@@ -173,9 +172,9 @@ public class TensorFlow {
     }
 
     // propPos determines the location of the prop and returns either Left, Center, or Right
-    private String propPos(Telemetry telemetry, Recognition recognition) {
+    private PropPosition propPos(Telemetry telemetry, Recognition recognition) {
         visionPortal.setProcessorEnabled(tfod, true); // turn on the processor for tensorflow if not already on
-        String propPos;
+        PropPosition propPos;
         double x = (recognition.getLeft() + recognition.getRight()) / 2; // calculate center x value of recognized object
 
         // quick math: 640/3 = 213.3333333333333, round up to 214
@@ -186,27 +185,39 @@ public class TensorFlow {
         telemetry.update();
 
         if (x >= 0 && x <= 214) {
-            propPos = "left";
+            propPos = PropPosition.LEFT;
             telemetry.addData("Detected team prop at left spike, color: ", recognition.getLabel());
             telemetry.update();
 
         } else if (x >= 215 && x <= 428) {
-            propPos = "middle";
+            propPos = PropPosition.MIDDLE;
             telemetry.addData("Detected team prop on middle spike, color: ", recognition.getLabel());
             telemetry.update();
 
         } else if (x >= 429 && x <= 640) {
-            propPos = "right";
+            propPos = PropPosition.RIGHT;
             telemetry.addData("Detected team prop on right spike, color: ", recognition.getLabel());
             telemetry.update();
         } else {
-            propPos = "fail";
+            propPos = PropPosition.FAIL;
             telemetry.addData("Couldn't detect any team props.", null);
             telemetry.update();
         }
 
         visionPortal.setProcessorEnabled(tfod, false); // disable tfod to save processing power
         return propPos;
+    }
+
+    public enum PropAlliance {
+        RED,
+        BLUE
+    }
+
+    public enum PropPosition {
+        LEFT,
+        MIDDLE,
+        RIGHT,
+        FAIL
     }
 
 }   // end class (really FTC?)
