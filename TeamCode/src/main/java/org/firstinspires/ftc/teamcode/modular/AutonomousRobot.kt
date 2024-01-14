@@ -47,9 +47,7 @@ class AutonomousRobot(
     private lateinit var rollWrist: Servo
 
     fun checkActive(): Boolean {
-        val yes = active() && !stopped()
-        telemetry.addLine(yes.toString())
-        return yes
+        return active() && !stopped()
     }
 
     fun initialize(hardwareMap: HardwareMap) {
@@ -60,8 +58,8 @@ class AutonomousRobot(
         this.imu = hardwareMap["imu"] as IMU
         this.encoder = hardwareMap["encoder"] as DcMotor
         this.forwardDistance = hardwareMap["fdistance"] as DistanceSensor
-        this.leftgrabber = ServoWrapper(hardwareMap.servo["leftgrabber"], 0.0, 0.4)
-        this.rightgrabber = ServoWrapper(hardwareMap.servo["rightgrabber"], 1.0, 0.428)
+        this.leftgrabber = ServoWrapper(hardwareMap.servo["leftgrabber"], 0.0, 0.4466)
+        this.rightgrabber = ServoWrapper(hardwareMap.servo["rightgrabber"], 1.0, 0.332)
         this.lclaw = ServoWrapper(hardwareMap.servo["lclawservo"], 0.8, 0.5)
         this.rclaw = ServoWrapper(hardwareMap.servo["rclawservo"], 0.85, 0.5)
         this.armBottom = hardwareMap.touchSensor["armbottom"]
@@ -85,11 +83,11 @@ class AutonomousRobot(
         )
         this.imu.resetYaw()
         this.direction = RobotDirection.RED_FAR
-        // this.leftgrabber.set(0.5)
-        // Thread.sleep(500)
-        // this.rightgrabber.set(0.421)
-        this.leftgrabber.set(Robot.ServoDualState.OPEN)
-        this.rightgrabber.set(Robot.ServoDualState.OPEN)
+        this.leftgrabber.set(0.5434)
+        Thread.sleep(500)
+        this.rightgrabber.set(0.27)
+        // this.leftgrabber.set(Robot.ServoDualState.OPEN)
+        // this.rightgrabber.set(Robot.ServoDualState.OPEN)
         this.lclaw.set(Robot.ServoDualState.CLOSED)
         this.rclaw.set(Robot.ServoDualState.CLOSED)
         // this.leftgrabber.set(Robot.ServoDualState.CLOSED)
@@ -201,7 +199,7 @@ class AutonomousRobot(
         this.telemetry.addLine(this.direction.name)
     }
 
-    private fun moveAndTurn() {
+    fun moveAndTurn() {
         this.moveUntilEncoder(8000, Direction.FORWARD)
         this.turnUntilHeadingDelta(
             if (direction.color == Color.RED) TurnDirection.RIGHT else TurnDirection.LEFT,
@@ -218,9 +216,8 @@ class AutonomousRobot(
 
     @Suppress("ControlFlowWithEmptyBody")
     fun manipulatePixel() {
-        // done in init
-        // this.leftgrabber.set(Robot.ServoDualState.OPEN)
-        // this.rightgrabber.set(Robot.ServoDualState.OPEN)
+        this.leftgrabber.set(Robot.ServoDualState.OPEN)
+        this.rightgrabber.set(Robot.ServoDualState.OPEN)
         this.armBaseMotor.power = -0.5
         while (checkActive() && !this.armBottom.isPressed) {
             telemetry.addLine("running arm ${armBaseMotor.currentPosition}")
@@ -229,13 +226,19 @@ class AutonomousRobot(
         this.armBaseMotor.power = 0.0
         this.lclaw.set(Robot.ServoDualState.CLOSED)
         this.rclaw.set(Robot.ServoDualState.CLOSED)
-        val timedelta = System.currentTimeMillis()
         this.armBaseMotor.power = 0.5
+        this.telemetry.addLine("up, pressed")
+        telemetry.update()
         // normalizes if flop is removed before button press or not
         while (checkActive() && this.armBottom.isPressed) {
         }
-        while (checkActive() && (System.currentTimeMillis() - timedelta) < 500) {
-        }
+        // this.armBaseMotor.power = 0.2
+        telemetry.addLine("up, not pressed")
+        telemetry.update()
+        val timedelta = System.currentTimeMillis()
+        Thread.sleep(1500)
+        // while (checkActive() && (System.currentTimeMillis() - timedelta) < 1000) {
+        // }
         this.armBaseMotor.power = 0.0
         this.leftgrabber.set(Robot.ServoDualState.CLOSED)
         this.rightgrabber.set(Robot.ServoDualState.CLOSED)

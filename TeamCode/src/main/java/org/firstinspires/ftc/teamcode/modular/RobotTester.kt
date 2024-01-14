@@ -14,7 +14,7 @@ class RobotTester : OpMode() {
         this.robot.initialize(this.hardwareMap)
         this.robot.registerButton(this.robot.BooleanButton(Gamepad::a, 0), Robot::switchDirection)
         this.robot.registerButton(
-            this.robot.BooleanButton(Gamepad::dpad_down, 0),
+            this.robot.BooleanButton(Gamepad::b, 0),
             Robot::quarterSpeed
         )
         this.robot.registerButton(

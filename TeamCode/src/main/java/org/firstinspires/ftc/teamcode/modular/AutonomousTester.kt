@@ -25,10 +25,10 @@ class AutonomousTester : LinearOpMode() {
             this.robot.direction = AutonomousRobot.RobotDirection.RED_NEAR
         }
         this.robot.registerButton(this.robot.BooleanButton(Gamepad::left_bumper)) { ->
-            this.robot.toggleClaw(Robot.LRServo.LEFT)
+            this.robot.toggleClaw(Robot.LRServo.RIGHT)
         }
         this.robot.registerButton(this.robot.BooleanButton(Gamepad::right_bumper)) { ->
-            this.robot.toggleClaw(Robot.LRServo.RIGHT)
+            this.robot.toggleClaw(Robot.LRServo.LEFT)
         }
         this.robot.registerButton(this.robot.BooleanButton(Gamepad::dpad_up)) { ->
             this.robot.rightgrabber.set(Robot.ServoDualState.OPEN)
@@ -46,6 +46,8 @@ class AutonomousTester : LinearOpMode() {
             this.resetRuntime()
             if (!this.robot.checkActive()) return
             this.robot.manipulatePixel()
+            if (!this.robot.checkActive()) return
+            this.robot.moveAndTurn();
             if (!this.robot.checkActive()) return
             when (this.robot.direction.distance) {
                 AutonomousRobot.Distance.NEAR -> this.robot.moveUntilEncoder(
