@@ -2,7 +2,6 @@ package org.firstinspires.ftc.teamcode.modular
 
 import com.qualcomm.robotcore.hardware.DcMotor
 import com.qualcomm.robotcore.hardware.DcMotorSimple
-import com.qualcomm.robotcore.hardware.DistanceSensor
 import com.qualcomm.robotcore.hardware.Gamepad
 import com.qualcomm.robotcore.hardware.HardwareMap
 import com.qualcomm.robotcore.hardware.Servo
@@ -88,7 +87,6 @@ class Robot(private val telemetry: Telemetry) {
         this.lclaw.set(ServoDualState.CLOSED)
         this.rclaw.set(ServoDualState.CLOSED)
         // this is set in the ending position in autonomous, check that for the staggered closing position
-        // TODO: check grabber positions in between auto and teleop
         this.leftgrabber.set(ServoDualState.OPEN)
         this.rightgrabber.set(ServoDualState.OPEN)
         this.droneservo.set(ServoDualState.CLOSED)
@@ -114,7 +112,7 @@ class Robot(private val telemetry: Telemetry) {
                 -this.armMotorStick.get() * 0.5
             else
                 (-this.armMotorStick.get() * 0.5).coerceAtLeast(0.0)
-        val spindlePosition = this.spindleDrive.currentPosition
+        // val spindlePosition = this.spindleDrive.currentPosition
         // if (spindlePosition >= -5) {
         this.spindleDrive.power =
             (this.spindleExtendStick.get() - this.spindleRetractStick.get()) * 0.35
