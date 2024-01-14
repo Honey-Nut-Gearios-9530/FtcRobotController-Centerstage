@@ -75,7 +75,6 @@ class AutonomousRobot(
         leftBack.direction = DcMotorSimple.Direction.REVERSE
         rightBack.direction = DcMotorSimple.Direction.FORWARD
         this.pixelPickupPose()
-        // this.pitchWrist.position = 0.8461111 /* TODO: find offset such that arm down doesn't get stuck on pixels but can place them down and keep aligned with cowcatcher */
         this.imu.initialize(
             IMU.Parameters(
                 RevHubOrientationOnRobot(
