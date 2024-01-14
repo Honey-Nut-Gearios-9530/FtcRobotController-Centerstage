@@ -52,7 +52,7 @@ class Robot(private val telemetry: Telemetry) {
         this.lclaw = ServoWrapper(hardwareMap.servo["lclawservo"], 0.8, 0.5)
         this.rclaw = ServoWrapper(hardwareMap.servo["rclawservo"], 0.8, 0.5)
         this.leftgrabber = ServoWrapper(hardwareMap.servo["leftgrabber"], 0.0, 0.4)
-        this.rightgrabber = ServoWrapper(hardwareMap.servo["rightgrabber"], 1.0, 0.55)
+        this.rightgrabber = ServoWrapper(hardwareMap.servo["rightgrabber"], 1.0, 0.428)
         this.droneservo = ServoWrapper(hardwareMap.servo["droneservo"], 0.1, 0.0)
         this.armBottom = hardwareMap.touchSensor["armbottom"]
         // hardwareMap.forEach { telemetry.addLine(it.deviceName + " " + it.connectionInfo) }
@@ -102,8 +102,12 @@ class Robot(private val telemetry: Telemetry) {
         }
         this.updateDrivetrain()
         this.updateArm()
-        // this.rightgrabber.set((this.rightgrabber.getPosition() + -this.currentGamepad1.left_stick_y * 0.002).coerceIn(0.0..1.0))
-        // this.telemetry.addLine("grabber: ${rightgrabber.getPosition()}")
+        this.rightgrabber.set(
+            (this.rightgrabber.getPosition() + -this.currentGamepad1.left_stick_y * 0.002).coerceIn(
+                0.0..1.0
+            )
+        )
+        this.telemetry.addLine("grabber: ${rightgrabber.getPosition()}")
     }
 
     private fun updateArm() {

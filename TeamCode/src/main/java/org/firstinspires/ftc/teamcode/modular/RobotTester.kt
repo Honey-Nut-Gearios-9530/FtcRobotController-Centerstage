@@ -9,11 +9,18 @@ import com.qualcomm.robotcore.hardware.Gamepad
 class RobotTester : OpMode() {
     private var robot = Robot(this.telemetry)
 
+    // TODO: touch sensor for arm retracting so it can be controlled in auto / auto pose
     override fun init() {
         this.robot.initialize(this.hardwareMap)
         this.robot.registerButton(this.robot.BooleanButton(Gamepad::a, 0), Robot::switchDirection)
-        this.robot.registerButton(this.robot.BooleanButton(Gamepad::dpad_down, 0), Robot::quarterSpeed)
-        this.robot.registerButton(this.robot.BooleanButton(Gamepad::dpad_down, 1), Robot::pixelPickupPose)
+        this.robot.registerButton(
+            this.robot.BooleanButton(Gamepad::dpad_down, 0),
+            Robot::quarterSpeed
+        )
+        this.robot.registerButton(
+            this.robot.BooleanButton(Gamepad::dpad_down, 1),
+            Robot::pixelPickupPose
+        )
         this.robot.registerButton(this.robot.BooleanButton(Gamepad::dpad_up, 0), Robot::launchDrone)
         this.robot.registerButton(this.robot.BooleanButton(Gamepad::left_bumper, 1)) { ->
             this.robot.toggleClaw(Robot.LRServo.LEFT)

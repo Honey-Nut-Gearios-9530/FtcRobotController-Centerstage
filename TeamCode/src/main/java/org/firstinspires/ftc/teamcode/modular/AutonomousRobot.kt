@@ -17,7 +17,11 @@ import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit
 import kotlin.math.absoluteValue
 import kotlin.reflect.KFunction0
 
-class AutonomousRobot(private val telemetry: Telemetry, private val stopped: KFunction0<Boolean>, private val active: KFunction0<Boolean>) {
+class AutonomousRobot(
+    private val telemetry: Telemetry,
+    private val stopped: KFunction0<Boolean>,
+    private val active: KFunction0<Boolean>
+) {
     private lateinit var leftFront: DcMotor
     private lateinit var rightFront: DcMotor
     private lateinit var leftBack: DcMotor
@@ -34,14 +38,18 @@ class AutonomousRobot(private val telemetry: Telemetry, private val stopped: KFu
     private lateinit var encoder: DcMotor
     private lateinit var forwardDistance: DistanceSensor
     private lateinit var leftgrabber: ServoWrapper
-    private lateinit var rightgrabber: ServoWrapper
+    lateinit var rightgrabber: ServoWrapper
     private lateinit var lclaw: ServoWrapper
     private lateinit var rclaw: ServoWrapper
     private lateinit var armBaseMotor: DcMotor
     private lateinit var armBottom: TouchSensor
+    lateinit var pitchWrist: Servo
+    private lateinit var rollWrist: Servo
 
-    private fun checkActive(): Boolean {
-        return active() && !stopped()
+    fun checkActive(): Boolean {
+        val yes = active() && !stopped()
+        telemetry.addLine(yes.toString())
+        return yes
     }
 
     fun initialize(hardwareMap: HardwareMap) {
@@ -49,20 +57,25 @@ class AutonomousRobot(private val telemetry: Telemetry, private val stopped: KFu
         this.rightFront = hardwareMap.dcMotor["rfdrive"]
         this.leftBack = hardwareMap.dcMotor["lbdrive"]
         this.rightBack = hardwareMap.dcMotor["rbdrive"]
-        this.imu = hardwareMap.get("imu") as IMU
-        this.encoder = hardwareMap.get("encoder") as DcMotor
+        this.imu = hardwareMap["imu"] as IMU
+        this.encoder = hardwareMap["encoder"] as DcMotor
         this.forwardDistance = hardwareMap["fdistance"] as DistanceSensor
         this.leftgrabber = ServoWrapper(hardwareMap.servo["leftgrabber"], 0.0, 0.4)
-        this.rightgrabber = ServoWrapper(hardwareMap.servo["rightgrabber"], 1.0, 0.55)
+        this.rightgrabber = ServoWrapper(hardwareMap.servo["rightgrabber"], 1.0, 0.428)
         this.lclaw = ServoWrapper(hardwareMap.servo["lclawservo"], 0.8, 0.5)
-        this.rclaw = ServoWrapper(hardwareMap.servo["rclawservo"], 0.8, 0.5)
+        this.rclaw = ServoWrapper(hardwareMap.servo["rclawservo"], 0.85, 0.5)
         this.armBottom = hardwareMap.touchSensor["armbottom"]
+        this.armBaseMotor = hardwareMap.dcMotor["armbasedrive"]
         this.drivetrainMotors = arrayOf(leftFront, rightFront, leftBack, rightBack)
+        this.pitchWrist = hardwareMap.servo["verticalwrist"]
+        this.rollWrist = hardwareMap.servo["horizontalwrist"]
         this.drivetrainMotors.forEach { it.mode = DcMotor.RunMode.RUN_WITHOUT_ENCODER }
         leftFront.direction = DcMotorSimple.Direction.REVERSE
         rightFront.direction = DcMotorSimple.Direction.FORWARD
         leftBack.direction = DcMotorSimple.Direction.REVERSE
         rightBack.direction = DcMotorSimple.Direction.FORWARD
+        this.pixelPickupPose()
+        // this.pitchWrist.position = 0.8461111 /* TODO: find offset such that arm down doesn't get stuck on pixels but can place them down and keep aligned with cowcatcher */
         this.imu.initialize(
             IMU.Parameters(
                 RevHubOrientationOnRobot(
@@ -73,11 +86,20 @@ class AutonomousRobot(private val telemetry: Telemetry, private val stopped: KFu
         )
         this.imu.resetYaw()
         this.direction = RobotDirection.RED_FAR
-        this.leftgrabber.set(0.5)
-        Thread.sleep(500)
-        this.rightgrabber.set(0.421)
+        // this.leftgrabber.set(0.5)
+        // Thread.sleep(500)
+        // this.rightgrabber.set(0.421)
+        this.leftgrabber.set(Robot.ServoDualState.OPEN)
+        this.rightgrabber.set(Robot.ServoDualState.OPEN)
+        this.lclaw.set(Robot.ServoDualState.CLOSED)
+        this.rclaw.set(Robot.ServoDualState.CLOSED)
         // this.leftgrabber.set(Robot.ServoDualState.CLOSED)
         // this.rightgrabber.set(Robot.ServoDualState.CLOSED)
+    }
+
+    fun pixelPickupPose() {
+        this.pitchWrist.position = 0.8461111
+        this.rollWrist.position = 0.39
     }
 
     private fun getHeading(): Float {
@@ -108,7 +130,7 @@ class AutonomousRobot(private val telemetry: Telemetry, private val stopped: KFu
         }
     }
 
-    private fun moveUntilEncoder(target: Int, direction: Direction, speed: Double = 0.25) {
+    fun moveUntilEncoder(target: Int, direction: Direction, speed: Double = 0.25) {
         this.encoder.mode = DcMotor.RunMode.STOP_AND_RESET_ENCODER
         this.encoder.mode = DcMotor.RunMode.RUN_USING_ENCODER
         var mutableSpeed = speed
@@ -180,18 +202,6 @@ class AutonomousRobot(private val telemetry: Telemetry, private val stopped: KFu
         this.telemetry.addLine(this.direction.name)
     }
 
-    fun near() {
-        manipulatePixel()
-        moveAndTurn()
-        this.moveUntilEncoder(80000, Direction.FORWARD)
-        scoreWithReverse()
-    }
-
-    fun far() {
-        this.moveUntilEncoder(150000, Direction.FORWARD)
-        scoreWithReverse()
-    }
-
     private fun moveAndTurn() {
         this.moveUntilEncoder(8000, Direction.FORWARD)
         this.turnUntilHeadingDelta(
@@ -208,19 +218,27 @@ class AutonomousRobot(private val telemetry: Telemetry, private val stopped: KFu
     }
 
     fun manipulatePixel() {
-        this.leftgrabber.set(Robot.ServoDualState.OPEN)
-        this.leftgrabber.set(Robot.ServoDualState.OPEN)
-        while (!checkActive() && !this.armBottom.isPressed) {
-            this.armBaseMotor.power = -0.2
+        // done in init
+        // this.leftgrabber.set(Robot.ServoDualState.OPEN)
+        // this.rightgrabber.set(Robot.ServoDualState.OPEN)
+        this.armBaseMotor.power = -0.5
+        while (checkActive() && !this.armBottom.isPressed) {
+            telemetry.addLine("running arm ${armBaseMotor.currentPosition}")
+            telemetry.update()
         }
-        this.lclaw.set(Robot.ServoDualState.OPEN)
-        this.rclaw.set(Robot.ServoDualState.OPEN)
+        this.armBaseMotor.power = 0.0
+        this.lclaw.set(Robot.ServoDualState.CLOSED)
+        this.rclaw.set(Robot.ServoDualState.CLOSED)
         val timedelta = System.currentTimeMillis()
-        while (!checkActive() && timedelta - System.currentTimeMillis() < 500) {
-            this.armBaseMotor.power = 0.2
+        this.armBaseMotor.power = 0.5
+        // normalizes if flop happens after dress or before
+        while (checkActive() && this.armBottom.isPressed) {
         }
+        while (checkActive() && (System.currentTimeMillis() - timedelta) < 500) {
+        }
+        this.armBaseMotor.power = 0.0
         this.leftgrabber.set(Robot.ServoDualState.CLOSED)
-        this.leftgrabber.set(Robot.ServoDualState.CLOSED)
+        this.rightgrabber.set(Robot.ServoDualState.CLOSED)
     }
 
     fun toggleClaw(claw: Robot.LRServo) {
