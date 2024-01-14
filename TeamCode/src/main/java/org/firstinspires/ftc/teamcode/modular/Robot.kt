@@ -54,7 +54,7 @@ class Robot(private val telemetry: Telemetry) {
         this.rclaw = ServoWrapper(hardwareMap.servo["rclawservo"], 0.8, 0.5)
         this.leftgrabber = ServoWrapper(hardwareMap.servo["leftgrabber"], 0.0, 0.4)
         this.rightgrabber = ServoWrapper(hardwareMap.servo["rightgrabber"], 1.0, 0.55)
-        this.droneservo = ServoWrapper(hardwareMap.servo["droneservo"], 0.0, 0.1)
+        this.droneservo = ServoWrapper(hardwareMap.servo["droneservo"], 0.1, 0.0)
         this.armBottom = hardwareMap.touchSensor["armbottom"]
         // hardwareMap.forEach { telemetry.addLine(it.deviceName + " " + it.connectionInfo) }
         this.drivetrainMotors = arrayOf(leftFront, rightFront, leftBack, rightBack)
@@ -82,14 +82,15 @@ class Robot(private val telemetry: Telemetry) {
         leftBack.direction = DcMotorSimple.Direction.REVERSE
         rightBack.direction = DcMotorSimple.Direction.FORWARD
 
-        this.armBaseMotor.direction = DcMotorSimple.Direction.REVERSE
+        this.armBaseMotor.direction = DcMotorSimple.Direction.FORWARD
         this.spindleDrive.direction = DcMotorSimple.Direction.REVERSE
 
         this.lclaw.set(ServoDualState.CLOSED)
         this.rclaw.set(ServoDualState.CLOSED)
-        this.leftgrabber.set(0.5)
-        Thread.sleep(500)
-        this.rightgrabber.set(0.421)
+        // this is set in the ending position in autonomous, check that for the staggered closing position
+        // TODO: check grabber positions in between auto and teleop
+        this.leftgrabber.set(ServoDualState.OPEN)
+        this.rightgrabber.set(ServoDualState.OPEN)
         this.droneservo.set(ServoDualState.CLOSED)
 
         this.telemetry.addLine("Initialized devices")

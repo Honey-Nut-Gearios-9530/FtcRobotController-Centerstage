@@ -60,9 +60,11 @@ class AutonomousRobot(private val telemetry: Telemetry) {
         )
         this.imu.resetYaw()
         this.direction = RobotDirection.RED_FAR
-        this.leftgrabber.set(0.5)
-        Thread.sleep(500)
-        this.rightgrabber.set(0.421)
+        // this.leftgrabber.set(0.5)
+        // Thread.sleep(500)
+        // this.rightgrabber.set(0.421)
+        this.leftgrabber.set(Robot.ServoDualState.CLOSED)
+        this.rightgrabber.set(Robot.ServoDualState.CLOSED)
     }
 
     private fun getHeading(): Float {
