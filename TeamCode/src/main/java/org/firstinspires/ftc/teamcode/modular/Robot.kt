@@ -51,8 +51,8 @@ class Robot(private val telemetry: Telemetry) {
         this.rollWrist = hardwareMap.servo["horizontalwrist"]
         this.lclaw = ServoWrapper(hardwareMap.servo["lclawservo"], 0.8, 0.5)
         this.rclaw = ServoWrapper(hardwareMap.servo["rclawservo"], 0.8, 0.5)
-        this.leftgrabber = ServoWrapper(hardwareMap.servo["leftgrabber"], 0.0, 0.39)
-        this.rightgrabber = ServoWrapper(hardwareMap.servo["rightgrabber"], 0.5, 0.0270)
+        this.leftgrabber = ServoWrapper(hardwareMap.servo["leftgrabber"], 0.0, 0.535)
+        this.rightgrabber = ServoWrapper(hardwareMap.servo["rightgrabber"], 1.0, 0.46)
         this.droneservo = ServoWrapper(hardwareMap.servo["droneservo"], 0.0, 0.05)
         this.armBottom = hardwareMap.touchSensor["armbottom"]
         this.drivetrainMotors = arrayOf(leftFront, rightFront, leftBack, rightBack)
@@ -84,8 +84,8 @@ class Robot(private val telemetry: Telemetry) {
 
         this.lclaw.set(ServoDualState.CLOSED)
         this.rclaw.set(ServoDualState.CLOSED)
-        this.leftgrabber.set(0.55)
-        this.rightgrabber.set(0.0)
+        this.leftgrabber.set(0.43)
+        this.rightgrabber.set(0.57)
         this.droneservo.set(ServoDualState.CLOSED)
 
         this.telemetry.addLine("Initialized devices")
@@ -103,12 +103,12 @@ class Robot(private val telemetry: Telemetry) {
     }
 
     private fun updateGrabber() {
-        this.rightgrabber.set(
-            (this.rightgrabber.getPosition() + -this.currentGamepad1.left_stick_y * 0.002).coerceIn(
+        this.leftgrabber.set(
+            (this.leftgrabber.getPosition() + -this.currentGamepad1.left_stick_y * 0.002).coerceIn(
                 0.0..1.0
             )
         )
-        this.telemetry.addLine("right grabber: " + this.rightgrabber.getPosition())
+        this.telemetry.addLine("left grabber: " + this.leftgrabber.getPosition())
     }
 
     private fun updateArm() {
@@ -118,12 +118,12 @@ class Robot(private val telemetry: Telemetry) {
             else
                 (-this.armMotorStick.get() * 0.5).coerceAtLeast(0.0)
         val spindlePosition = this.spindleDrive.currentPosition
-        if (spindlePosition >= -5) {
-            this.spindleDrive.power =
-                (this.spindleExtendStick.get() - this.spindleRetractStick.get()) * 0.35
-        } else {
-            this.spindleDrive.power = 0.04
-        }
+        // if (spindlePosition >= -5) {
+        this.spindleDrive.power =
+            (this.spindleExtendStick.get() - this.spindleRetractStick.get()) * 0.35
+        // } else {
+        //     this.spindleDrive.power = 0.04
+        // }
         // telemetry.addLine(spindlePosition.toString())
         updateWrist()
     }

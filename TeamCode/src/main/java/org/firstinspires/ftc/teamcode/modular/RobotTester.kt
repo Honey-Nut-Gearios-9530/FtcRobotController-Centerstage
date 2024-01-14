@@ -46,5 +46,4 @@ class RobotTester : OpMode() {
         this.robot.tick(this.gamepad1, this.gamepad2)
         this.telemetry.update()
     }
-
 }
