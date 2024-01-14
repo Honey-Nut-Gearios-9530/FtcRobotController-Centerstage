@@ -22,10 +22,12 @@ class RobotTester : OpMode() {
             this.robot.toggleClaw(Robot.LRServo.RIGHT)
         }
         this.robot.registerButton(this.robot.BooleanButton(Gamepad::left_bumper, 0)) { ->
+            this.telemetry.addLine("left")
             this.robot.toggleGrabber(Robot.LRServo.LEFT)
         }
         this.robot.registerButton(this.robot.BooleanButton(Gamepad::right_bumper, 0)) { ->
             this.robot.toggleGrabber(Robot.LRServo.RIGHT)
+            this.telemetry.addLine("right")
         }
         this.robot.registerDrivetrainButtons(
             this.robot.FloatButton(Gamepad::right_stick_y, 0),

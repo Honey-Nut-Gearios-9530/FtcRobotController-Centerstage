@@ -2,6 +2,7 @@ package org.firstinspires.ftc.teamcode.modular
 
 import com.qualcomm.robotcore.hardware.DcMotor
 import com.qualcomm.robotcore.hardware.DcMotorSimple
+import com.qualcomm.robotcore.hardware.DistanceSensor
 import com.qualcomm.robotcore.hardware.Gamepad
 import com.qualcomm.robotcore.hardware.HardwareMap
 import com.qualcomm.robotcore.hardware.Servo
@@ -51,10 +52,11 @@ class Robot(private val telemetry: Telemetry) {
         this.rollWrist = hardwareMap.servo["horizontalwrist"]
         this.lclaw = ServoWrapper(hardwareMap.servo["lclawservo"], 0.8, 0.5)
         this.rclaw = ServoWrapper(hardwareMap.servo["rclawservo"], 0.8, 0.5)
-        this.leftgrabber = ServoWrapper(hardwareMap.servo["leftgrabber"], 0.0, 0.535)
-        this.rightgrabber = ServoWrapper(hardwareMap.servo["rightgrabber"], 1.0, 0.46)
-        this.droneservo = ServoWrapper(hardwareMap.servo["droneservo"], 0.0, 0.05)
+        this.leftgrabber = ServoWrapper(hardwareMap.servo["leftgrabber"], 0.0, 0.4)
+        this.rightgrabber = ServoWrapper(hardwareMap.servo["rightgrabber"], 1.0, 0.55)
+        this.droneservo = ServoWrapper(hardwareMap.servo["droneservo"], 0.0, 0.1)
         this.armBottom = hardwareMap.touchSensor["armbottom"]
+        // hardwareMap.forEach { telemetry.addLine(it.deviceName + " " + it.connectionInfo) }
         this.drivetrainMotors = arrayOf(leftFront, rightFront, leftBack, rightBack)
 
         // faster than using encoders
@@ -71,6 +73,7 @@ class Robot(private val telemetry: Telemetry) {
         // slows down faster when directional input is let off
         this.drivetrainMotors.forEach { it.zeroPowerBehavior = DcMotor.ZeroPowerBehavior.BRAKE }
         this.armBaseMotor.zeroPowerBehavior = DcMotor.ZeroPowerBehavior.BRAKE
+        this.armBaseMotor.zeroPowerBehavior = DcMotor.ZeroPowerBehavior.BRAKE
         this.spindleDrive.zeroPowerBehavior = DcMotor.ZeroPowerBehavior.BRAKE
 
         // go forward on all pos inputs
@@ -84,8 +87,9 @@ class Robot(private val telemetry: Telemetry) {
 
         this.lclaw.set(ServoDualState.CLOSED)
         this.rclaw.set(ServoDualState.CLOSED)
-        this.leftgrabber.set(0.43)
-        this.rightgrabber.set(0.57)
+        this.leftgrabber.set(0.5)
+        Thread.sleep(500)
+        this.rightgrabber.set(0.421)
         this.droneservo.set(ServoDualState.CLOSED)
 
         this.telemetry.addLine("Initialized devices")
@@ -99,16 +103,8 @@ class Robot(private val telemetry: Telemetry) {
         }
         this.updateDrivetrain()
         this.updateArm()
-        this.updateGrabber()
-    }
-
-    private fun updateGrabber() {
-        this.leftgrabber.set(
-            (this.leftgrabber.getPosition() + -this.currentGamepad1.left_stick_y * 0.002).coerceIn(
-                0.0..1.0
-            )
-        )
-        this.telemetry.addLine("left grabber: " + this.leftgrabber.getPosition())
+        // this.rightgrabber.set((this.rightgrabber.getPosition() + -this.currentGamepad1.left_stick_y * 0.002).coerceIn(0.0..1.0))
+        // this.telemetry.addLine("grabber: ${rightgrabber.getPosition()}")
     }
 
     private fun updateArm() {

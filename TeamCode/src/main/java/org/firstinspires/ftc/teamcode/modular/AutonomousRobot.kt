@@ -3,13 +3,16 @@ package org.firstinspires.ftc.teamcode.modular
 import com.qualcomm.hardware.rev.RevHubOrientationOnRobot
 import com.qualcomm.robotcore.hardware.DcMotor
 import com.qualcomm.robotcore.hardware.DcMotorSimple
+import com.qualcomm.robotcore.hardware.DistanceSensor
 import com.qualcomm.robotcore.hardware.Gamepad
 import com.qualcomm.robotcore.hardware.HardwareMap
 import com.qualcomm.robotcore.hardware.IMU
+import com.qualcomm.robotcore.hardware.Servo
 import org.firstinspires.ftc.robotcore.external.Telemetry
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit
 import org.firstinspires.ftc.robotcore.external.navigation.AxesOrder
 import org.firstinspires.ftc.robotcore.external.navigation.AxesReference
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit
 import kotlin.math.absoluteValue
 
 class AutonomousRobot(private val telemetry: Telemetry) {
@@ -27,6 +30,9 @@ class AutonomousRobot(private val telemetry: Telemetry) {
         HashMap<AutonomousRobot.BooleanButton, (Robot.BooleanState) -> Unit>()
     lateinit var direction: RobotDirection
     private lateinit var encoder: DcMotor
+    private lateinit var forwardDistance: DistanceSensor
+    private lateinit var leftgrabber: ServoWrapper
+    private lateinit var rightgrabber: ServoWrapper
 
     fun initialize(hardwareMap: HardwareMap) {
         this.leftFront = hardwareMap.dcMotor["lfdrive"]
@@ -35,6 +41,9 @@ class AutonomousRobot(private val telemetry: Telemetry) {
         this.rightBack = hardwareMap.dcMotor["rbdrive"]
         this.imu = hardwareMap.get("imu") as IMU
         this.encoder = hardwareMap.get("encoder") as DcMotor
+        this.forwardDistance = hardwareMap["fdistance"] as DistanceSensor
+        this.leftgrabber = ServoWrapper(hardwareMap.servo["leftgrabber"], 0.0, 0.4)
+        this.rightgrabber = ServoWrapper(hardwareMap.servo["rightgrabber"], 1.0, 0.55)
         this.drivetrainMotors = arrayOf(leftFront, rightFront, leftBack, rightBack)
         this.drivetrainMotors.forEach { it.mode = DcMotor.RunMode.RUN_WITHOUT_ENCODER }
         leftFront.direction = DcMotorSimple.Direction.REVERSE
@@ -51,6 +60,9 @@ class AutonomousRobot(private val telemetry: Telemetry) {
         )
         this.imu.resetYaw()
         this.direction = RobotDirection.RED_FAR
+        this.leftgrabber.set(0.5)
+        Thread.sleep(500)
+        this.rightgrabber.set(0.421)
     }
 
     private fun getHeading(): Float {
@@ -89,6 +101,8 @@ class AutonomousRobot(private val telemetry: Telemetry) {
         val initialPosition = this.encoder.currentPosition
         var newPosition: Int
         while (true) {
+            // panic
+            if (forwardDistance.getDistance(DistanceUnit.INCH) < 5) break
             newPosition = (initialPosition - this.encoder.currentPosition).absoluteValue
             if (newPosition > target) break
             this.telemetry.addLine("new encoder: $newPosition")
@@ -150,17 +164,20 @@ class AutonomousRobot(private val telemetry: Telemetry) {
     fun updateTelemetry() {
         this.telemetry.addLine(this.direction.name)
         this.telemetry.addLine("encoder: ${encoder.currentPosition}")
+        this.telemetry.addLine("distance: ${forwardDistance.getDistance(DistanceUnit.INCH)}")
     }
 
     // mirror == blue
     fun near() {
-        // this.moveUntilEncoder(8000, Direction.FORWARD)
-        // this.turnUntilHeadingDelta(
-        //     if (direction.color == Color.RED) TurnDirection.RIGHT else TurnDirection.LEFT,
-        //     83.0
-        // )
-        // this.moveUntilEncoder(80000, Direction.FORWARD)
-        this.moveUntilEncoder(1000, Direction.BACKWARDS)
+        this.moveUntilEncoder(8000, Direction.FORWARD)
+        this.turnUntilHeadingDelta(
+            if (direction.color == Color.RED) TurnDirection.RIGHT else TurnDirection.LEFT,
+            83.0
+        )
+        this.moveUntilEncoder(80000, Direction.FORWARD)
+        this.leftgrabber.set(Robot.ServoDualState.OPEN)
+        this.rightgrabber.set(Robot.ServoDualState.OPEN)
+        this.moveUntilEncoder(2000, Direction.BACKWARDS)
     }
 
     fun far() {
@@ -170,6 +187,9 @@ class AutonomousRobot(private val telemetry: Telemetry) {
             83.0
         )
         this.moveUntilEncoder(150000, Direction.FORWARD)
+        this.leftgrabber.set(Robot.ServoDualState.OPEN)
+        this.rightgrabber.set(Robot.ServoDualState.OPEN)
+        this.moveUntilEncoder(2000, Direction.BACKWARDS)
     }
 
     inner class BooleanButton(private val button: BooleanButtonType) {
@@ -204,4 +224,24 @@ class AutonomousRobot(private val telemetry: Telemetry) {
     enum class TurnDirection {
         LEFT, RIGHT
     }
+
+    inner class ServoWrapper(
+        private val servo: Servo,
+        private val open: Double,
+        private val closed: Double,
+        private var state: Robot.ServoDualState = Robot.ServoDualState.CLOSED
+    ) {
+        fun set(state: Robot.ServoDualState) {
+            this.state = state
+            when (state) {
+                Robot.ServoDualState.OPEN -> this.servo.position = this.open
+                Robot.ServoDualState.CLOSED -> this.servo.position = this.closed
+            }
+        }
+
+        fun set(position: Double) {
+            this.servo.position = position
+        }
+    }
+
 }
