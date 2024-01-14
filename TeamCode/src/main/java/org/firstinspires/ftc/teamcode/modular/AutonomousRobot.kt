@@ -217,6 +217,7 @@ class AutonomousRobot(
         this.moveUntilEncoder(2000, Direction.BACKWARDS)
     }
 
+    @Suppress("ControlFlowWithEmptyBody")
     fun manipulatePixel() {
         // done in init
         // this.leftgrabber.set(Robot.ServoDualState.OPEN)
