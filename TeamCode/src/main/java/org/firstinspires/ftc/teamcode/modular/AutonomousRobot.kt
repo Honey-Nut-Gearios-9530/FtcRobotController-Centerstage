@@ -232,7 +232,7 @@ class AutonomousRobot(
         this.rclaw.set(Robot.ServoDualState.CLOSED)
         val timedelta = System.currentTimeMillis()
         this.armBaseMotor.power = 0.5
-        // normalizes if flop happens after dress or before
+        // normalizes if flop is removed before button press or not
         while (checkActive() && this.armBottom.isPressed) {
         }
         while (checkActive() && (System.currentTimeMillis() - timedelta) < 500) {
