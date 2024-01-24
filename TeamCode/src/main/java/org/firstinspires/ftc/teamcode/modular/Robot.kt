@@ -10,7 +10,6 @@ import org.firstinspires.ftc.robotcore.external.Telemetry
 import org.firstinspires.ftc.robotcore.external.matrices.GeneralMatrixF
 import kotlin.math.absoluteValue
 import kotlin.math.sign
-import kotlin.properties.Delegates
 import kotlin.reflect.KMutableProperty1
 
 typealias FloatButtonType = KMutableProperty1<Gamepad, Float>
@@ -40,7 +39,6 @@ class Robot(private val telemetry: Telemetry) {
     private var currentGamepad2 = Gamepad()
     private var pastGamepad2 = Gamepad()
     private val registeredBooleanInputs = HashMap<GamepadButton, (BooleanState) -> Unit>()
-    private val profiler = Profiler()
 
     fun initialize(hardwareMap: HardwareMap) {
         val leftFront = hardwareMap.dcMotor["lfdrive"]
@@ -53,11 +51,10 @@ class Robot(private val telemetry: Telemetry) {
         this.rollWrist = hardwareMap.servo["horizontalwrist"]
         this.lclaw = ServoWrapper(hardwareMap.servo["lclawservo"], 0.8, 0.5)
         this.rclaw = ServoWrapper(hardwareMap.servo["rclawservo"], 0.8, 0.5)
-        this.leftgrabber = ServoWrapper(hardwareMap.servo["leftgrabber"], 0.0, 0.4466)
-        this.rightgrabber = ServoWrapper(hardwareMap.servo["rightgrabber"], 1.0, 0.332)
-        this.droneservo = ServoWrapper(hardwareMap.servo["droneservo"], 0.1, 0.0)
+        this.leftgrabber = ServoWrapper(hardwareMap.servo["leftgrabber"], 0.0, 0.535)
+        this.rightgrabber = ServoWrapper(hardwareMap.servo["rightgrabber"], 1.0, 0.46)
+        this.droneservo = ServoWrapper(hardwareMap.servo["droneservo"], 0.0, 0.05)
         this.armBottom = hardwareMap.touchSensor["armbottom"]
-        // hardwareMap.forEach { telemetry.addLine(it.deviceName + " " + it.connectionInfo) }
         this.drivetrainMotors = arrayOf(leftFront, rightFront, leftBack, rightBack)
 
         // faster than using encoders
@@ -74,11 +71,9 @@ class Robot(private val telemetry: Telemetry) {
         // slows down faster when directional input is let off
         this.drivetrainMotors.forEach { it.zeroPowerBehavior = DcMotor.ZeroPowerBehavior.BRAKE }
         this.armBaseMotor.zeroPowerBehavior = DcMotor.ZeroPowerBehavior.BRAKE
-        this.armBaseMotor.zeroPowerBehavior = DcMotor.ZeroPowerBehavior.BRAKE
         this.spindleDrive.zeroPowerBehavior = DcMotor.ZeroPowerBehavior.BRAKE
 
-        // go forward on all pos inputsm9
-
+        // go forward on all pos inputs
         leftFront.direction = DcMotorSimple.Direction.REVERSE
         rightFront.direction = DcMotorSimple.Direction.FORWARD
         leftBack.direction = DcMotorSimple.Direction.REVERSE
@@ -87,85 +82,44 @@ class Robot(private val telemetry: Telemetry) {
         this.armBaseMotor.direction = DcMotorSimple.Direction.FORWARD
         this.spindleDrive.direction = DcMotorSimple.Direction.REVERSE
 
-        // this.lclaw.set(ServoDualState.CLOSED)
-        // this.rclaw.set(ServoDualState.CLOSED)
-        // this is set in the ending position in autonomous, check that for the staggered closing position
-        this.leftgrabber.set(ServoDualState.OPEN)
-        this.rightgrabber.set(ServoDualState.OPEN)
+        this.lclaw.set(ServoDualState.CLOSED)
+        this.rclaw.set(ServoDualState.CLOSED)
+//        this.leftgrabber.set(1.0)
+//        this.rightgrabber.set(0.5)
         this.droneservo.set(ServoDualState.CLOSED)
 
         this.telemetry.addLine("Initialized devices")
         this.telemetry.update()
     }
 
-    // TODO: extract to separate class
-    class Profiler {
-        private val entries = ArrayList<Long>()
-        private var start by Delegates.notNull<Long>()
-        private var started = false
-        private var counter = 0
-
-        fun start() {
-            this.started = true
-            this.start = System.currentTimeMillis()
-        }
-
-        fun end() {
-            if (this.started) {
-                this.started = false
-                this.entries.add(System.currentTimeMillis() - start)
-                this.counter++
-            }
-        }
-
-        fun average(): Double {
-            return this.entries.average()
-        }
-
-        fun highest(): Long {
-            return this.entries.max()
-        }
-
-        fun smallest(): Long {
-            return this.entries.min()
-        }
-
-        fun samples(): Int {
-            return this.counter
-        }
-    }
-
     fun tick(gamepad1: Gamepad, gamepad2: Gamepad) {
-        this.profiler.start()
         this.updateGamepads(gamepad1, gamepad2)
         this.registeredBooleanInputs.forEach { (button: GamepadButton, consumer: (BooleanState) -> Unit) ->
             this.handleBooleanButtonTick(button as BooleanButton, consumer)
         }
         this.updateDrivetrain()
         this.updateArm()
-        // this.rightgrabber.set(
-        //     (this.rightgrabber.getPosition() + -this.currentGamepad1.left_stick_y * 0.002).coerceIn(
-        //         0.0..1.0
-        //     )
-        // )
-        // this.leftgrabber.set(
-        //     (this.leftgrabber.getPosition() + -this.currentGamepad1.left_stick_x * 0.002).coerceIn(
-        //         0.0..1.0
-        //     )
-        // )
-        // this.telemetry.addLine("rgrabber: ${rightgrabber.getPosition()}")
-        // this.telemetry.addLine("lgrabber: ${leftgrabber.getPosition()}")
-        this.profiler.end()
-        this.telemetry.addLine("profile -> avg: ${this.profiler.average()} max: ${this.profiler.highest()}, min: ${this.profiler.smallest()}")
+        this.updateGrabber()
+    }
+
+    private fun updateGrabber() {
+        this.leftgrabber.set(
+            (this.leftgrabber.getPosition() + -this.currentGamepad1.left_stick_y * 0.002).coerceIn(
+                0.0..1.0
+            )
+        )
+        this.telemetry.addLine("left grabber: " + this.leftgrabber.getPosition())
+        this.telemetry.addLine("right grabber: " + this.rightgrabber.getPosition())
+
     }
 
     private fun updateArm() {
         this.armBaseMotor.power =
             if (!this.armBottom.isPressed)
-                -this.armMotorStick.get() * 0.5
+                -this.armMotorStick.get() * 0.25
             else
-                (-this.armMotorStick.get() * 0.5).coerceAtLeast(0.0)
-        // val spindlePosition = this.spindleDrive.currentPosition
+                (-this.armMotorStick.get() * 0.25).coerceAtLeast(0.0)
+        val spindlePosition = this.spindleDrive.currentPosition
         // if (spindlePosition >= -5) {
         this.spindleDrive.power =
             (this.spindleExtendStick.get() - this.spindleRetractStick.get()) * 0.35
@@ -179,10 +133,10 @@ class Robot(private val telemetry: Telemetry) {
     private fun updateWrist() {
         this.pitchWrist.position =
             (this.pitchWrist.position + this.wristPitchStick.get() * 0.002).coerceIn(0.25..0.9)
-        // this.telemetry.addLine(pitchWrist.position.toString())
+         this.telemetry.addLine("pitch: " + pitchWrist.position.toString())
         this.rollWrist.position =
             (this.rollWrist.position + this.wristRollStick.get() * 0.005).coerceIn(0.0..0.54)
-        // this.telemetry.addLine(rollWrist.position.toString())
+         this.telemetry.addLine("roll: " + rollWrist.position.toString())
     }
 
     private fun updateGamepads(gamepad1: Gamepad, gamepad2: Gamepad) {
@@ -274,8 +228,8 @@ class Robot(private val telemetry: Telemetry) {
     }
 
     fun pixelPickupPose() {
-        this.pitchWrist.position = 0.8461111
-        this.rollWrist.position = 0.39
+        this.pitchWrist.position = 0.771666
+        this.rollWrist.position = 0.46333
     }
 
     fun launchDrone() {

@@ -95,8 +95,8 @@ class AutonomousRobot(
     }
 
     fun pixelPickupPose() {
-        this.pitchWrist.position = 0.8461111
-        this.rollWrist.position = 0.39
+        this.pitchWrist.position = 0.771666
+        this.rollWrist.position = 0.46333
     }
 
     private fun getHeading(): Float {
