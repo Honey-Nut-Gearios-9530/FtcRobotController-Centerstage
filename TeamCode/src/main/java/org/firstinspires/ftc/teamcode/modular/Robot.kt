@@ -49,11 +49,11 @@ class Robot(private val telemetry: Telemetry) {
         this.spindleDrive = hardwareMap.dcMotor["spindledrive"]
         this.pitchWrist = hardwareMap.servo["verticalwrist"]
         this.rollWrist = hardwareMap.servo["horizontalwrist"]
-        this.lclaw = ServoWrapper(hardwareMap.servo["lclawservo"], 0.8, 0.5)
-        this.rclaw = ServoWrapper(hardwareMap.servo["rclawservo"], 0.8, 0.5)
-        this.leftgrabber = ServoWrapper(hardwareMap.servo["leftgrabber"], 0.0, 0.535)
-        this.rightgrabber = ServoWrapper(hardwareMap.servo["rightgrabber"], 1.0, 0.46)
-        this.droneservo = ServoWrapper(hardwareMap.servo["droneservo"], 0.0, 0.05)
+        this.lclaw = ServoWrapper(hardwareMap.servo["lclawservo"], Positions.clawOpen, Positions.clawClosed)
+        this.rclaw = ServoWrapper(hardwareMap.servo["rclawservo"], Positions.clawOpen, Positions.clawClosed)
+        this.leftgrabber = ServoWrapper(hardwareMap.servo["leftgrabber"], Positions.leftGrabberOpen, Positions.leftGrabberClose)
+        this.rightgrabber = ServoWrapper(hardwareMap.servo["rightgrabber"], Positions.rightGrabberOpen, Positions.rightGrabberClose)
+        this.droneservo = ServoWrapper(hardwareMap.servo["droneservo"], Positions.droneOpen, Positions.droneClose)
         this.armBottom = hardwareMap.touchSensor["armbottom"]
         this.drivetrainMotors = arrayOf(leftFront, rightFront, leftBack, rightBack)
 
@@ -82,11 +82,12 @@ class Robot(private val telemetry: Telemetry) {
         this.armBaseMotor.direction = DcMotorSimple.Direction.FORWARD
         this.spindleDrive.direction = DcMotorSimple.Direction.REVERSE
 
-        this.lclaw.set(ServoDualState.CLOSED)
-        this.rclaw.set(ServoDualState.CLOSED)
-//        this.leftgrabber.set(1.0)
-//        this.rightgrabber.set(0.5)
+        // this.lclaw.set(ServoDualState.CLOSED)
+        // this.rclaw.set(ServoDualState.CLOSED)
+       this.leftgrabber.set(ServoDualState.OPEN)
+       this.rightgrabber.set(ServoDualState.OPEN)
         this.droneservo.set(ServoDualState.CLOSED)
+        this.pixelPickupPose()
 
         this.telemetry.addLine("Initialized devices")
         this.telemetry.update()
@@ -102,12 +103,25 @@ class Robot(private val telemetry: Telemetry) {
         this.updateGrabber()
     }
 
+    fun fullyClose() {
+        this.rightgrabber.set(ServoDualState.CLOSED)
+        this.rightgrabber.set(Positions.rightGrabberFullyClose)
+        Thread.sleep(500)
+        this.leftgrabber.set(ServoDualState.CLOSED)
+        this.leftgrabber.set(Positions.leftGrabberFullyClose)
+    }
+
     private fun updateGrabber() {
-        this.leftgrabber.set(
-            (this.leftgrabber.getPosition() + -this.currentGamepad1.left_stick_y * 0.002).coerceIn(
-                0.0..1.0
-            )
-        )
+        // this.leftgrabber.set(
+        //     (this.leftgrabber.getPosition() + -this.currentGamepad1.left_stick_y * 0.002).coerceIn(
+        //         0.0..1.0
+        //     )
+        // )
+        // this.rightgrabber.set(
+        //     (this.rightgrabber.getPosition() + -this.currentGamepad1.left_stick_y * 0.002).coerceIn(
+        //         0.0..1.0
+        //     )
+        // )
         this.telemetry.addLine("left grabber: " + this.leftgrabber.getPosition())
         this.telemetry.addLine("right grabber: " + this.rightgrabber.getPosition())
 
@@ -228,8 +242,8 @@ class Robot(private val telemetry: Telemetry) {
     }
 
     fun pixelPickupPose() {
-        this.pitchWrist.position = 0.771666
-        this.rollWrist.position = 0.46333
+        this.pitchWrist.position = Positions.pitchPickupPose
+        this.rollWrist.position = Positions.rollPickupPose
     }
 
     fun launchDrone() {

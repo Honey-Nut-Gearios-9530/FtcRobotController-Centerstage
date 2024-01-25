@@ -22,6 +22,7 @@ class RobotTester : OpMode() {
             Robot::pixelPickupPose
         )
         this.robot.registerButton(this.robot.BooleanButton(Gamepad::dpad_up, 0), Robot::launchDrone)
+        this.robot.registerButton(this.robot.BooleanButton(Gamepad::x, 0), Robot::fullyClose)
         this.robot.registerButton(this.robot.BooleanButton(Gamepad::left_bumper, 1)) { ->
             this.robot.toggleClaw(Robot.LRServo.LEFT)
         }

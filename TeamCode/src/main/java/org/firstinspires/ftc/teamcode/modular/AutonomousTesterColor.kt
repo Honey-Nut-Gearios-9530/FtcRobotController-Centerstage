@@ -6,8 +6,8 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode
 import com.qualcomm.robotcore.hardware.Gamepad
 
 @Suppress("unused")
-@Autonomous(name = "Autonomous Tester", group = "Prod", preselectTeleOp = "Robot Tester")
-class AutonomousTester : LinearOpMode() {
+@Autonomous(name = "Autonomous Tester Color", group = "Prod", preselectTeleOp = "Robot Tester")
+class AutonomousTesterColor : LinearOpMode() {
     private var robot = AutonomousRobot(this.telemetry, this::isStopRequested, this::opModeIsActive)
 
     override fun runOpMode() {
@@ -44,6 +44,15 @@ class AutonomousTester : LinearOpMode() {
             if (!this.robot.checkActive()) return
             this.robot.manipulatePixel()
             if (!this.robot.checkActive()) return
+            // new part
+            this.robot.moveUntilEncoder(Positions.spikeEncoderTicks, AutonomousRobot.Direction.FORWARD)
+            if (!this.robot.checkActive()) return
+            this.robot.leftgrabber.set(Robot.ServoDualState.OPEN)
+            this.robot.moveUntilEncoder(2000, AutonomousRobot.Direction.BACKWARDS)
+            if (!this.robot.checkActive()) return
+            this.robot.moveUntilEncoder(Positions.spikeEncoderTicks - 2000, AutonomousRobot.Direction.BACKWARDS)
+            this.robot.leftgrabber.set(Robot.ServoDualState.CLOSED)
+            // end new part
             this.robot.moveAndTurn();
             if (!this.robot.checkActive()) return
             when (this.robot.direction.distance) {
